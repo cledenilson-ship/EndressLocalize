@@ -1,0 +1,22 @@
+{
+  "name": "PainelSE PARA",
+  "short_name": "PainelSE",
+  "description": "Consulta e Localização de Painéis SE-PARA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003399",
+  "icons": [
+    {
+      "src": "icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+ 
