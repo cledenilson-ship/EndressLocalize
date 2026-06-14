@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PainelSE / PARÁ</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#fff;padding:0}
+.container{max-width:600px;margin:0 auto;padding:12px}
+
+/* Cabeçalho */
+.header{
+  background:#003399;
+  padding:16px 12px;
+  text-align:center;
+  margin-bottom:20px;
+}
+.header h1{
+  color:#fff;
+  font-size:26px;
+  font-weight:bold;
+  margin-bottom:4px;
+}
+.header p{
+  color:#d9e7ff;
+  font-size:14px;
+}
+
+input{width:100%;height:48px;font-size:16px;padding:0 14px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9}
+.campo-busca{display:flex;gap:8px;margin-bottom:12px}
+.campo-busca input{flex:1}
+.linha-dupla{display:flex;gap:10px;margin-bottom:12px}
+.endereco-completo{width:100%;min-height:65px;padding:14px 16px;border-radius:8px;background:#e7f3ff;border:1px solid #b3d8ff;color:#002b66;margin-bottom:16px;font-size:16px;line-height:1.6}
+.botoes-linha{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+button{width:50px;height:50px;border:none;border-radius:8px;font-size:22px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
+.azul{background:#0066cc}.amarelo{background:#ffc107;color:#222}.laranja{background:#f57c00}.verde{background:#2e7d32}.rosa{background:#e91e63}.roxo{background:#7b1fa2}
+.mapa{width:100%;height:320px;border:2px solid #216ce7;border-radius:12px;margin-top:12px}
+.modal-camera{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:2000;flex-direction:column;justify-content:flex-end}
+.modal-camera.ativo{display:flex}
+.preview-foto{flex:1;width:100%;object-fit:contain;background:#000}
+.camera-botoes{display:flex;gap:12px;padding:20px;justify-content:center;background:#000}
+.camera-botoes button{width:auto;height:50px;padding:0 30px;font-size:16px;font-weight:bold;border-radius:12px}
+.btn-capturar{background:#28a745}
+.btn-fechar{background:#dc3545}
+.modal-lista{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto}
+.modal-lista.ativo{display:flex}
+.lista-card{background:#fff;width:100%;max-width:500px;border-radius:12px;padding:20px;margin-top:40px;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+.lista-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee}
+.lista-header h2{color:#333;font-size:20px;font-weight:bold;margin:0}
+.btn-fechar-x{width:40px;height:40px;background:#dc3545;color:white;border:none;border-radius:8px;font-size:24px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lista-conteudo{display:flex;flex-direction:column;gap:12px}
+.endereco-card{border:1px solid #e0e0e0;border-radius:10px;padding:14px;background:#fafafa}
+.endereco-info{font-size:15px;line-height:1.6;color:#333;margin-bottom:12px}
+.endereco-info strong{font-size:16px;display:block;margin-bottom:4px}
+.endereco-acoes{display:flex;gap:8px;justify-content:flex-end}
+.btn-acao{width:44px;height:44px;border:none;border-radius:8px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-localizar{background:#0066cc}
+.btn-excluir{background:#dc3545}
+.overlay-loading{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);color:white;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:3000;font-size:18px}
+.overlay-loading.ativo{display:flex}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>PainelSE/PARÁ</h1>
+  <p>Consulta e Localização</p>
+</div>
+
+<div class="container">
+<div class="campo-busca">
+<input type="text" id="rua" placeholder="Rua / Logradouro">
+<button class="azul" id="btnBuscar">🔍</button>
+</div>
+<div class="linha-dupla">
+<input type="text" id="cep" placeholder="CEP" maxlength="9">
+<input type="text" id="numero" placeholder="Número">
+</div>
+<div class="linha-dupla">
+<input type="text" id="cidade" placeholder="Cidade - UF">
+<input type="text" id="bairro" placeholder="Bairro">
+</div>
+<div id="caixaEndereco" class="endereco-completo">Aguardando localização...</div>
+<div class="botoes-linha">
+<button class="azul" id="btnCamera">📸</button>
+<button class="amarelo" id="btnMicrofone">🎤</button>
+<button class="amarelo" id="btnGPS">📍</button>
+<button class="laranja" id="btnRota">🛣️</button>
+<button class="verde" id="btnSalvar">💾</button>
+<button class="rosa" id="btnLista">📋</button>
+<button class="roxo" id="btnLimpar">🧹</button>
+</div>
+<iframe id="mapa" class="mapa" src="https://www.google.com/maps?q=Brasil&output=embed&hl=pt-BR&z=4" allowfullscreen loading="lazy"></iframe>
+</div>
+
+<div id="modalCamera" class="modal-camera">
+<video id="videoCamera" class="preview-foto" autoplay playsinline></video>
+<canvas id="canvasFoto" style="display:none"></canvas>
+<div class="camera-botoes">
+<button class="btn-capturar" id="btnCapturar">Capturar</button>
+<button class="btn-fechar" id="btnFecharCamera">Fechar</button>
+</div>
+</div>
+
+<div id="modalLista" class="modal-lista">
+<div class="lista-card">
+<div class="lista-header">
+<h2>Endereços Salvos</h2>
+<button class="btn-fechar-x" id="btnFecharLista">×</button>
+</div>
+<div class="lista-conteudo" id="listaEnderecos"></div>
+</div>
+</div>
+
+<div id="loadingOCR" class="overlay-loading">
+<div>Lendo imagem...</div>
+<div id="progressOCR" style="margin-top:10px">0%</div>
+</div>
+
+<script>
+let enderecoAtual='',streamCamera=null,reconhecimentoVoz=null;
+let ruaEl,cepEl,numeroEl,cidadeEl,bairroEl,caixaEndereco,mapaEl,modalCamera,videoCamera,canvasFoto,loadingOCR;
+
+function formatarCEP(v){v=v.replace(/\D/g,'');return v.length===8?v.slice(0,5)+'-'+v.slice(5):v}
+function montarEnderecoCompleto(d){let p=[];if(d.cidade)p.push(d.cidade);let r='';if(d.rua)r+=d.rua;if(d.numero)r+=`, nº ${d.numero}`;if(r)p.push(r);let c='';if(d.cep)c+=formatarCEP(d.cep);if(d.bairro)c+=(c?' - ':'')+d.bairro;if(c)p.push(c);return p.join('<br>')||'Endereço não disponível'}
+function atualizarMapa(e){mapaEl.src=`https://www.google.com/maps?q=${encodeURIComponent(e)}&output=embed&hl=pt-BR&z=18`}
+
+document.addEventListener('DOMContentLoaded',function(){
+ruaEl=document.getElementById('rua');cepEl=document.getElementById('cep');numeroEl=document.getElementById('numero');cidadeEl=document.getElementById('cidade');bairroEl=document.getElementById('bairro');caixaEndereco=document.getElementById('caixaEndereco');mapaEl=document.getElementById('mapa');modalCamera=document.getElementById('modalCamera');videoCamera=document.getElementById('videoCamera');canvasFoto=document.getElementById('canvasFoto');loadingOCR=document.getElementById('loadingOCR');
+
+function verificarEnderecoSalvo(d){
+let lista=JSON.parse(localStorage.getItem('enderecosSalvos')||'[]');
+let encontrado=lista.find(end=>end.rua?.toLowerCase()===d.rua?.toLowerCase()&&end.cep?.replace(/\D/g,'')===d.cep?.replace(/\D/g,''));
+let final=encontrado?Object.assign({},d,encontrado):d;
+ruaEl.value=final.rua||'';numeroEl.value=final.numero||'';bairroEl.value=final.bairro||'';cidadeEl.value=final.cidade||'';cepEl.value=formatarCEP(final.cep||'');
+caixaEndereco.innerHTML=montarEnderecoCompleto(final);
+enderecoAtual=`${final.rua} ${final.numero}, ${final.bairro}, ${final.cidade}, Brasil`;
+atualizarMapa(enderecoAtual);}
+
+async function buscarEndereco(){
+try{
+let cep=cepEl.value.replace(/\D/g,'');
+if(cep.length===8){
+caixaEndereco.textContent='Buscando CEP...';
+let r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+let j=await r.json();
+if(!j.erro){verificarEnderecoSalvo({rua:j.logradouro,numero:numeroEl.value,bairro:j.bairro,cidade:`${j.localidade} - ${j.uf}`,cep:j.cep});return}
+else{caixaEndereco.textContent='CEP não encontrado'}}
+let termo=`${ruaEl.value} ${numeroEl.value}, ${bairroEl.value}, ${cidadeEl.value||'Pará'}, Brasil`;
+enderecoAtual=termo;atualizarMapa(termo);caixaEndereco.textContent='Endereço enviado para o mapa'
+}catch(e){caixaEndereco.textContent='Erro: '+e.message}}
+
+async function abrirCamera(){
+try{streamCamera=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+videoCamera.srcObject=streamCamera;modalCamera.classList.add('ativo')}
+catch(e){caixaEndereco.textContent='Erro câmera: '+e.message}}
+
+function fecharCamera(){if(streamCamera){streamCamera.getTracks().forEach(t=>t.stop());streamCamera=null}modalCamera.classList.remove('ativo')}
+
+async function processarFoto(){
+let ctx=canvasFoto.getContext('2d');
+canvasFoto.width=videoCamera.videoWidth;canvasFoto.height=videoCamera.videoHeight;
+ctx.drawImage(videoCamera,0,0);fecharCamera();caixaEndereco.textContent='Lendo imagem...';loadingOCR.classList.add('ativo');
+try{let r=await Tesseract.recognize(canvasFoto,'por');let m=r.data.text.match(/\d{5}-?\d{3}/);
+if(m){let cep=m[0].replace('-','');cepEl.value=formatarCEP(cep);caixaEndereco.textContent=`CEP: ${formatarCEP(cep)}. Buscando...`;await buscarEndereco()}
+else{caixaEndereco.textContent='CEP não encontrado'}}catch(e){caixaEndereco.textContent='Erro OCR'}finally{loadingOCR.classList.remove('ativo')}}
+
+function iniciarMicrofone(){
+let SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){caixaEndereco.textContent='Microfone não suportado';return}
+reconhecimentoVoz=new SR();reconhecimentoVoz.lang='pt-BR';caixaEndereco.textContent='Ouvindo...';
+reconhecimentoVoz.onresult=e=>{ruaEl.value=e.results[0][0].transcript;caixaEndereco.textContent='Buscando...';buscarEndereco()};
+reconhecimentoVoz.onerror=e=>{caixaEndereco.textContent='Erro microfone: '+e.error};reconhecimentoVoz.start()}
+
+async function minhaLocalizacao(){
+caixaEndereco.textContent='Obtendo localização...';
+if(!navigator.geolocation){caixaEndereco.textContent='GPS não suportado';return}
+navigator.geolocation.getCurrentPosition(async p=>{
+let lat=p.coords.latitude,lon=p.coords.longitude;enderecoAtual=`${lat},${lon}`;atualizarMapa(enderecoAtual);
+try{let r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&countrycodes=br&accept-language=pt-BR`);
+let j=await r.json();let e=j.address||{};verificarEnderecoSalvo({rua:e.road||'',numero:e.house_number||'',bairro:e.suburb||e.neighbourhood||'',cidade:`${e.city||e.town||''} - ${e.state||''}`,cep:e.postcode||''})}
+catch{caixaEndereco.textContent=`Coordenadas: ${lat.toFixed(6)}, ${lon.toFixed(6)}`}},
+e=>{caixaEndereco.textContent='Erro GPS: '+e.message},{enableHighAccuracy:true,timeout:20000})}
+
+function tracarRota(){if(!enderecoAtual){caixaEndereco.textContent='Busque um endereço primeiro';return}
+window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(enderecoAtual)}&hl=pt-BR`,'_blank')}
+
+function salvarEndereco(){
+if(!ruaEl.value&&!cepEl.value){caixaEndereco.textContent='Preencha rua ou CEP';return}
+let end={rua:ruaEl.value.trim(),numero:numeroEl.value.trim(),bairro:bairroEl.value.trim(),cidade:cidadeEl.value.trim(),cep:cepEl.value.replace(/\D/g,'')};
+let lista=JSON.parse(localStorage.getItem('enderecosSalvos')||'[]');
+lista=lista.filter(e=>!(e.rua===end.rua&&e.cep===end.cep));lista.push(end);
+localStorage.setItem('enderecosSalvos',JSON.stringify(lista));
+caixaEndereco.innerHTML=montarEnderecoCompleto(end)+'<br>Salvo!'}
+
+function abrirListaSalvos(){
+let lista=JSON.parse(localStorage.getItem('enderecosSalvos')||'[]');
+let div=document.getElementById('listaEnderecos');
+div.innerHTML='';
+if(lista.length===0){div.innerHTML='<p style="text-align:center;color:#666;padding:20px">Nenhum endereço salvo</p>'}
+else{
+lista.forEach((end,i)=>{
+let card=document.createElement('div');
+card.className='endereco-card';
+card.innerHTML=`<div class="endereco-info"><strong>${end.rua} ${end.numero}</strong>${end.bairro} | ${end.cidade} |<br>CEP: ${formatarCEP(end.cep)}</div><div class="endereco-acoes"></div>`;
+let acoes=card.querySelector('.endereco-acoes');
+let btnL=document.createElement('button');btnL.className='btn-acao btn-localizar';btnL.textContent='📍';
+let btnE=document.createElement('button');btnE.className='btn-acao btn-excluir';btnE.textContent='🗑️';
+btnL.onclick=function(){carregarEndereco(i)};
+btnE.onclick=function(){deletarEndereco(i)};
+acoes.appendChild(btnL);acoes.appendChild(btnE);
+div.appendChild(card)})}
+document.getElementById('modalLista').classList.add('ativo')}
+
+function fecharLista(){document.getElementById('modalLista').classList.remove('ativo')}
+
+function carregarEndereco(i){
+let lista=JSON.parse(localStorage.getItem('enderecosSalvos')||'[]');
+let end=lista[i];
+ruaEl.value=end.rua || '';
+numeroEl.value=end.numero || '';
+bairroEl.value=end.bairro || '';
+cidadeEl.value=end.cidade || '';
+cepEl.value=formatarCEP(end.cep || '');
+enderecoAtual=`${end.rua} ${end.numero}, ${end.bairro}, ${end.cidade}, Brasil`;
+atualizarMapa(enderecoAtual);
+caixaEndereco.innerHTML=montarEnderecoCompleto(end);
+fecharLista()}
+
+function deletarEndereco(i){
+let lista=JSON.parse(localStorage.getItem('enderecosSalvos')||'[]');
+lista.splice(i,1);localStorage.setItem('enderecosSalvos',JSON.stringify(lista));
+abrirListaSalvos()}
+
+function limparTudo(){
+ruaEl.value='';cepEl.value='';numeroEl.value='';cidadeEl.value='';bairroEl.value='';
+enderecoAtual='';caixaEndereco.textContent='Aguardando localização...';
+mapaEl.src="https://www.google.com/maps?q=Brasil&output=embed&hl=pt-BR&z=4"}
+
+cepEl.addEventListener('input',()=>cepEl.value=formatarCEP(cepEl.value));
+document.getElementById('btnBuscar').onclick=buscarEndereco;
+document.getElementById('btnCamera').onclick=abrirCamera;
+document.getElementById('btnMicrofone').onclick=iniciarMicrofone;
+document.getElementById('btnGPS').onclick=minhaLocalizacao;
+document.getElementById('btnRota').onclick=tracarRota;
+document.getElementById('btnSalvar').onclick=salvarEndereco;
+document.getElementById('btnLista').onclick=abrirListaSalvos;
+document.getElementById('btnLimpar').onclick=limparTudo;
+document.getElementById('btnCapturar').onclick=processarFoto;
+document.getElementById('btnFecharCamera').onclick=fecharCamera;
+document.getElementById('btnFecharLista').onclick=fecharLista;
+});
+</script>
+</body>
+</html>
